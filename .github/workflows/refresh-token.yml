@@ -1,0 +1,27 @@
+name: refresh-token-ig
+# Renova o long-lived token (+60 dias) e sobrescreve o secret IG_TOKEN.
+# Roda toda segunda; como o token dura 60 dias, nunca chega perto de expirar.
+# Precisa do secret GH_PAT = token fine-grained DESTE repo com permissão "Secrets: write".
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: renovar token e atualizar secret
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          NEW=$(python -c "import ig_api, os; print(ig_api.refresh_token(os.environ['IG_TOKEN'])['access_token'])")
+          if [ -z "$NEW" ]; then echo "token vazio — abortando"; exit 1; fi
+          printf '%s' "$NEW" | gh secret set IG_TOKEN
+          echo "IG_TOKEN renovado por +60 dias."

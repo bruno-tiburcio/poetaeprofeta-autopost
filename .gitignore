@@ -1,0 +1,6 @@
+# nunca commitar token/segredos localmente
+.env
+*.token
+token.json
+__pycache__/
+*.pyc
